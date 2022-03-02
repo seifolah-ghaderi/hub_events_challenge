@@ -117,6 +117,34 @@ def cal_accept_ratio(df):
     ratio_df.sort_values(by=['ratio'], ascending=False)
     print('-------acceptance ratio ------')
     print(ratio_df)
+
+def cal_all_reviews(df):
+    df_mask = df['name'] == 'node/review/created'
+    reviews = df[df_mask]
+
+    data = []
+    ff = reviews.iloc[:, 2]
+    for i in ff:
+        m = (pd.json_normalize(eval(i)))
+        data.append(m[['event', 'hub_id', 'order_id', 'timestamp', 'context_traits_uid', 'review_value_speed',
+                       'review_value_print_quality']])
+
+    hub_reviews = pd.DataFrame(np.concatenate(data))
+    hub_reviews.columns = ['event', 'supplier_id', 'order_id', 'timestamp', 'customer_id', 'review_speed',
+                           'review_quality']
+
+    df_rv = hub_reviews[['supplier_id', 'review_speed', 'review_quality']].copy()
+    # df_rv
+    df_rv.info()
+    df_rv['review_speed'] = df_rv['review_speed'].astype('Int64')
+    df_rv['review_quality'] = df_rv['review_quality'].astype('Int64')
+
+
+    review_avg = df_rv.groupby(['supplier_id']).mean().astype(int)
+
+    print('------ review  avg -----')
+    print(review_avg.head())
+    return  review_avg
 # Press the green button in the gutter to run the script.
 csv_file = 'csv/hub.csv'
 
@@ -135,5 +163,5 @@ if __name__ == '__main__':
     df = load_datafram(csv_file)
     #load_all_orders(df)
     cal_accept_ratio(df)
-
+    cal_all_reviews(df)
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
