@@ -99,18 +99,7 @@ def load_all_orders(df):
     hub_orders_all = pd.DataFrame(np.concatenate(data))
     hub_orders_all.columns = ['event', 'supplier_id', 'order_id', 'timestamp', 'customer_id']
 
-    orders_total = hub_orders_all.groupby(['supplier_id']).count()
-
-    orders_total = orders_total.iloc[:, :1]
-
-    names = orders_total.columns.tolist()
-    names[0] = 'total'
-    orders_total.columns = names
-
-    orders_total.reset_index(inplace=True)
-    orders_total.sort_values(by=['total'], ascending=False)
-
-    return orders_total
+    return hub_orders_all
 
 
 def get_accepted_orders(df):
@@ -126,8 +115,9 @@ def get_accepted_orders(df):
     hub_accepted_orders = pd.DataFrame(np.concatenate(data))
     hub_accepted_orders.columns = ['event', 'supplier_id', 'order_id', 'timestamp', 'customer_id']
 
+    return hub_accepted_orders
+def cal_accepted_orders_count(hub_accepted_orders):
     # change in columns
-    hub_accepted_orders['supplier_id'].nunique()
     order_acc = hub_accepted_orders.groupby(['supplier_id']).count()
     order_acc = order_acc.iloc[:, :1]
     order_acc.sort_values(by=['event'], ascending=False)
@@ -138,12 +128,26 @@ def get_accepted_orders(df):
     order_acc.reset_index(inplace=True)
     order_acc.sort_values(by=['accepted'], ascending=False)
 
-    return order_acc
+    return  order_acc
+def cal_all_order_count(df_all):
+    df_all = df_all.groupby(['supplier_id']).count()
 
+    df_all = df_all.iloc[:, :1]
 
+    names = df_all.columns.tolist()
+    names[0] = 'total'
+    df_all.columns = names
+
+    df_all.reset_index(inplace=True)
+    df_all.sort_values(by=['total'], ascending=False)
+
+    return df_all
 def cal_accept_ratio(df):
-    df_all = load_all_orders(df)
-    df_accepteds = get_accepted_orders(df)
+    df_all_o = load_all_orders(df)
+    df_accepteds_o = get_accepted_orders(df)
+
+    df_all=cal_all_order_count(df_all_o)
+    df_accepteds=cal_accepted_orders_count(df_accepteds_o)
 
     ratio_df = pd.merge(df_all, df_accepteds)
 
@@ -155,7 +159,34 @@ def cal_accept_ratio(df):
     print('-------acceptance ratio ------')
     print(ratio_df)
     return ratio_df
+def cal_sup_resp_time(df):
+    df_all = load_all_orders(df)
+    df_accepteds = get_accepted_orders(df)
 
+    req = df_all.copy()
+    order = df_accepteds.copy()
+
+    req = req[['order_id', 'supplier_id', 'customer_id', 'timestamp']]
+    req.rename(columns={"timestamp": "order_time"},inplace = True)
+    order = order[['order_id', 'supplier_id', 'customer_id', 'timestamp']]
+    order.rename(columns={"timestamp": "accept_time"},inplace = True)
+    t2 = pd.merge(order, req, on=["order_id", "supplier_id", "customer_id"])
+    t2['order_time'] = pd.to_datetime(t2['order_time'])
+    t2['accept_time'] = pd.to_datetime(t2['accept_time'])
+    t2['value'] = round((t2['accept_time'] - t2['order_time']) / pd.Timedelta(hours=1), 2).astype(int)
+
+    t2 = t2[['supplier_id', 'value']]
+
+    g2 = t2.groupby(['supplier_id']).mean().astype(int)
+
+    g2 = g2.sort_values(by=['value'], ascending=True)
+    g2.reset_index(inplace=True)
+    grouped_df = g2.sort_values(by=['value'], ascending=False)
+    grouped_df['metric'] = 'average_response_time_h'
+    grouped_df['calculated_at'] = time.strftime("%Y-%m-%d")
+    print('-------supplier response time avg -----')
+    print(grouped_df)
+    return grouped_df
 def get_all_reviews(df):
     df_mask = df['name'] == 'node/review/created'
     reviews = df[df_mask].copy()
@@ -279,7 +310,8 @@ if __name__ == '__main__':
     # load_all_orders(df)
     ratio_df = cal_accept_ratio(df)
     avg_df= cal_review(df)
-    df_res =pd.concat([ratio_df, avg_df],ignore_index=True)
+    df_sup_time = cal_sup_resp_time(df)
+    df_res =pd.concat([ratio_df, avg_df,df_sup_time],ignore_index=True)
 
     print('----- final metric table ----')
     df_res = df_res.sort_values(by=['supplier_id'], ascending=False)
