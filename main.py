@@ -2,6 +2,9 @@
 
 # Press ⌃R to execute it or replace it with your code.
 # Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+import datetime
+import time
+
 import psycopg2
 import pandas as pds
 import pandas as pd
@@ -11,7 +14,6 @@ from sqlalchemy import create_engine
 
 
 def load_data():
-    # Example python program to read data from a PostgreSQL table
 
     # and load into a pandas DataFrame
 
@@ -29,12 +31,56 @@ def load_data():
 
     pds.set_option('display.expand_frame_repr', False)
 
-
-
     dbConnection.close()
     return dataFrame
 
 
+def wrtie_df_todb(df_table):
+    # and load into a pandas DataFrame
+    deleted_rows = delete_today_records()
+    print('cleaned today rows : ', deleted_rows)
+    # Create an engine instance
+
+    alchemyEngine = create_engine('postgresql+psycopg2://postgres:pass@127.0.0.1', pool_recycle=3600)
+
+    # Connect to PostgreSQL server
+
+    dbConnection = alchemyEngine.connect()
+
+    df_table.to_sql('supplier_score_metrics', alchemyEngine,if_exists='append',index=False)
+
+    dbConnection.close()
+    print('---write to database done √---')
+def delete_today_records():
+    """ delete part by part id """
+    alchemyEngine = create_engine('postgresql+psycopg2://postgres:pass@127.0.0.1', pool_recycle=3600)
+
+    conn = None
+    rows_deleted = 0
+    try:
+        # read database configuration
+
+        # connect to the PostgreSQL database
+        conn = psycopg2.connect(database="postgres", user='postgres', password='pass', host='127.0.0.1', port= '5432')
+        conn.autocommit = True
+        # create a new cursor
+        cur = conn.cursor()
+        # execute the UPDATE  statement
+        str= "delete from public.supplier_score_metrics s where s.calculated_at like '%s'" % time.strftime("%Y-%m-%d")
+        cur.execute(str)
+        # get the number of updated rows
+        rows_deleted = cur.rowcount
+        # Commit the changes to the database
+        conn.commit()
+        # Close communication with the PostgreSQL database
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+    finally:
+        if conn is not None:
+            conn.close()
+
+    return rows_deleted
 def load_datafram(filepath):
     df = pd.read_csv(filepath, index_col=0)
     return df
@@ -101,11 +147,14 @@ def cal_accept_ratio(df):
 
     ratio_df = pd.merge(df_all, df_accepteds)
 
-    ratio_df['ratio'] = round((ratio_df['accepted'] / ratio_df['total']) * 100).astype(int)
-    ratio_df=ratio_df[['supplier_id','ratio']]
-    ratio_df=ratio_df.sort_values(by=['ratio'], ascending=False)
+    ratio_df['value'] = round((ratio_df['accepted'] / ratio_df['total']) * 100).astype(int)
+    ratio_df=ratio_df[['supplier_id','value']]
+    ratio_df=ratio_df.sort_values(by=['value'], ascending=False)
+    ratio_df['metric'] = 'acceptance_ratio'
+    ratio_df['calculated_at'] = time.strftime("%Y-%m-%d")
     print('-------acceptance ratio ------')
     print(ratio_df)
+    return ratio_df
 
 def get_all_reviews(df):
     df_mask = df['name'] == 'node/review/created'
@@ -202,12 +251,15 @@ def cal_review(df):
     grouped_df = df_reviews.groupby(['supplier_id']).mean().astype(int)
 
     grouped_df=grouped_df.reset_index()
-    grouped_df['avg_rating'] = round((grouped_df['review_speed'] + grouped_df['review_quality']) / 2).astype(int)
-    grouped_df=grouped_df[['supplier_id', 'avg_rating']].copy()
+    grouped_df['value'] = round((grouped_df['review_speed'] + grouped_df['review_quality']) / 2).astype(int)
+    grouped_df=grouped_df[['supplier_id', 'value']].copy()
 
-    grouped_df = grouped_df.sort_values(by=['avg_rating'], ascending=False)
+    grouped_df = grouped_df.sort_values(by=['value'], ascending=False)
+    grouped_df['metric'] = 'average_rating'
+    grouped_df['calculated_at'] = time.strftime("%Y-%m-%d")
     print('----final avg rating ----')
     print(grouped_df)
+    return  grouped_df
 
 csv_file = 'csv/hub.csv'
 
@@ -225,6 +277,13 @@ if __name__ == '__main__':
 
     df = load_datafram(csv_file)
     # load_all_orders(df)
-    cal_accept_ratio(df)
-    cal_review(df)
+    ratio_df = cal_accept_ratio(df)
+    avg_df= cal_review(df)
+    df_res =pd.concat([ratio_df, avg_df],ignore_index=True)
+
+    print('----- final metric table ----')
+    df_res = df_res.sort_values(by=['supplier_id'], ascending=False)
+    df_res.reset_index(drop=True, inplace=True)
+    print(df_res)
+    wrtie_df_todb(df_res)
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
