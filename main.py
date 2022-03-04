@@ -37,7 +37,8 @@ def load_data():
 
 def wrtie_df_todb(df_table):
     # and load into a pandas DataFrame
-
+    deleted_rows = delete_today_records()
+    print('cleaned today rows : ', deleted_rows)
     # Create an engine instance
 
     alchemyEngine = create_engine('postgresql+psycopg2://postgres:pass@127.0.0.1', pool_recycle=3600)
@@ -49,8 +50,37 @@ def wrtie_df_todb(df_table):
     df_table.to_sql('supplier_score_metrics', alchemyEngine,if_exists='append',index=False)
 
     dbConnection.close()
-    print('---write to database done ---')
+    print('---write to database done √---')
+def delete_today_records():
+    """ delete part by part id """
+    alchemyEngine = create_engine('postgresql+psycopg2://postgres:pass@127.0.0.1', pool_recycle=3600)
 
+    conn = None
+    rows_deleted = 0
+    try:
+        # read database configuration
+
+        # connect to the PostgreSQL database
+        conn = psycopg2.connect(database="postgres", user='postgres', password='pass', host='127.0.0.1', port= '5432')
+        conn.autocommit = True
+        # create a new cursor
+        cur = conn.cursor()
+        # execute the UPDATE  statement
+        str= "delete from public.supplier_score_metrics s where s.calculated_at like '%s'" % time.strftime("%Y-%m-%d")
+        cur.execute(str)
+        # get the number of updated rows
+        rows_deleted = cur.rowcount
+        # Commit the changes to the database
+        conn.commit()
+        # Close communication with the PostgreSQL database
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+    finally:
+        if conn is not None:
+            conn.close()
+
+    return rows_deleted
 def load_datafram(filepath):
     df = pd.read_csv(filepath, index_col=0)
     return df
@@ -250,9 +280,7 @@ if __name__ == '__main__':
     ratio_df = cal_accept_ratio(df)
     avg_df= cal_review(df)
     df_res =pd.concat([ratio_df, avg_df],ignore_index=True)
-    #ratio_df.append(avg_df)
-        #pd.concat([ratio_df, avg_df])
-    #ratio_df.append(avg_df)
+
     print('----- final metric table ----')
     df_res = df_res.sort_values(by=['supplier_id'], ascending=False)
     df_res.reset_index(drop=True, inplace=True)
