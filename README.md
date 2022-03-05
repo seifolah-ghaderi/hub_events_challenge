@@ -12,7 +12,7 @@ Repo: https://github.com/seifolah-ghaderi/hub_events_challenge
   - pwd: `pass`
 - Two folder exists in code:
   - sql : contains `hubs_events.sql` that contain table definition and  `raw` initial data 
-  - csv : the data loaded first time are saved here to load from any jupyter notebook or other execution when database is not run
+  - csv : the data loaded first time are saved here to load from any jupyter notebook or other execution when database is not run.
 
 ####Customize database
 if you have your own database you should change the following lines in `main.py` with your credential :
@@ -24,7 +24,9 @@ db_conn = 'postgresql+psycopg2://postgres:pass@127.0.0.1'
 ```
 conn = psycopg2.connect(database="postgres", user='postgres', password='pass', host='127.0.0.1', port='5432')
 ```
+
 ###Prepare and run code
+
 ####database:
    you can use docker-compose to run a postgres database and automatically load sql script.
    Be sure that you are in code folder and then run:
@@ -36,7 +38,7 @@ be sure that postgres is run by checking:
 docker ps
 ```
 
-- running code:
+####running code:
 
 This is a pure python code so just make sure you have created a virtual environment and then run code by :
 
@@ -46,6 +48,7 @@ python3 -m venv venv
 source venv/bin/activate 
 python main.py
 ```
+
 ###output
 The output for each metric will be print in `console` window(in vscode or pycharm).
 and the table `supplier_score_metrics` will be created and populated in database.
@@ -61,7 +64,8 @@ FROM public.supplier_score_metrics;
 - calculate acceptance ratio metric
 - calculate average review metric
 - prepare to be ready for insert in database
-- write them to metric table 
+- write them to metric table
+
 
 ##Supplier Metrics:
 - Average review 
