@@ -1,0 +1,24 @@
+version: '3.5'
+
+services:
+  postgres:
+    container_name: hub_postgres_db
+    image: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pass}
+    volumes:
+      - ./data_container:/var/lib/postgresql/data
+      # copy the sql script to create tables
+      - ./sql/hubs_events.sql:/docker-entrypoint-initdb.d/hubs_events.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - postgres
+    restart: always
+
+networks:
+  postgres:
+    driver: bridge
+
+
