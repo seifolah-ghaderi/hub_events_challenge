@@ -37,7 +37,7 @@ def load_data_from_db():
     return dataFrame
 
 
-def wrtie_df_to_db(df_table):
+def wrtie_metrics_to_db(df_table):
     # and load into a pandas DataFrame
     deleted_rows = delete_today_records()
     print('cleaned today rows : ', deleted_rows)
@@ -89,7 +89,7 @@ def load_datafram_from_csv(filepath):
 
 ## end of db & file functions
 
-def load_all_orders(df):
+def get_assigned_orders(df):
     """
     get all record with event: order/execute/customer/status/processing and expand the result
     :param df: master dataframe
@@ -178,7 +178,7 @@ def cal_accept_ratio(df):
     :param df: master dataframe from csv or db
     :return: dataframe that contains: supplier_id',value,metric,calculated_at
     """
-    df_all_o = load_all_orders(df)
+    df_all_o = get_assigned_orders(df)
     df_accepteds_o = get_accepted_orders(df)
 
     df_all = cal_all_order_count(df_all_o)
@@ -202,7 +202,7 @@ def cal_sup_resp_time(df):
     :param df: master dataframe
     :return: dataframe that contains: supplier_id',value(response_time in hour),metric,calculated_at
     """
-    df_all = load_all_orders(df)
+    df_all = get_assigned_orders(df)
     df_accepteds = get_accepted_orders(df)
 
     req = df_all.copy()
@@ -397,4 +397,4 @@ if __name__ == '__main__':
     print(df_res)
 
     # 5- final steps: write to metric table in database
-    wrtie_df_to_db(df_res)
+    wrtie_metrics_to_db(df_res)
