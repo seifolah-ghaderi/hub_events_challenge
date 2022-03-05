@@ -5,7 +5,7 @@ Achievements: Calculate two below metrics for hub supplier
 
 Author: *Seifolah Ghaderi*
 Repo: https://github.com/seifolah-ghaderi/hub_events_challenge
-###Assumptions:
+### Assumptions:
 - A postgres database is up and running on localhost and port 5432
 - A database with name `postgres` is ready with following credentials: 
   - user: `postgres`
@@ -14,7 +14,7 @@ Repo: https://github.com/seifolah-ghaderi/hub_events_challenge
   - sql : contains `hubs_events.sql` that contain table definition and  `raw` initial data 
   - csv : the data loaded first time are saved here to load from any jupyter notebook or other execution when database is not run.
 
-####Customize database
+### Customize database
 if you have your own database you should change the following lines in `main.py` with your credential :
 - *db_conn* global variable: 
 ```
@@ -25,12 +25,13 @@ db_conn = 'postgresql+psycopg2://postgres:pass@127.0.0.1'
 conn = psycopg2.connect(database="postgres", user='postgres', password='pass', host='127.0.0.1', port='5432')
 ```
 
-###Prepare and run code
+### Prepare and run code
 
-####database:
-   you can use docker-compose to run a postgres database and automatically load sql script.
-   Be sure that you are in code folder and then run:
-   ```
+#### Database 
+you can use docker-compose to run a postgres database and automatically load sql script.
+Be sure that you are in code folder and then run:
+  
+ ```
    docker-compose up -d
 ```
 be sure that postgres is run by checking:
@@ -38,7 +39,7 @@ be sure that postgres is run by checking:
 docker ps
 ```
 
-####running code:
+#### running code:
 
 This is a pure python code so just make sure you have created a virtual environment and then run code by :
 
@@ -49,7 +50,7 @@ source venv/bin/activate
 python main.py
 ```
 
-###output
+### output
 The output for each metric will be print in `console` window(in vscode or pycharm).
 and the table `supplier_score_metrics` will be created and populated in database.
 
@@ -59,7 +60,7 @@ SELECT supplier_id, value, metric, calculated_at
 FROM public.supplier_score_metrics;
 ```
 
-#Milestones:
+# Milestones:
 - load dataframe from csv( or from postgres table)
 - calculate acceptance ratio metric
 - calculate average review metric
@@ -67,7 +68,7 @@ FROM public.supplier_score_metrics;
 - write them to metric table
 
 
-##Supplier Metrics:
+## Supplier Metrics:
 - Average review 
 - Acceptance ratio 
 - Response time (suggested by me)
@@ -152,7 +153,7 @@ And then make a new column to calculate their average .These all done in `cal_re
     grouped_df = df_reviews.groupby(['supplier_id']).mean().astype(int)
     grouped_df['value'] = round((grouped_df['review_speed'] + grouped_df['review_quality']) / 2).astype(int)
 ```
-###Checking data
+### Checking data
 - Update `event` with missed `order_id` :
 
 What i found during checking data is that there are some updated review that not exists in `created` reviews !.maybe they belong to another time windows. 
@@ -177,11 +178,11 @@ cond = df_reviews['order_id'].isin(df_del_reviews['order_id']) & df_reviews['cus
         df_del_reviews['customer_id'])
     df_reviews.drop(df_reviews[cond].index, inplace=True)
 ```
-###Extra Metrics for Suppliers
+# Extra Metrics for Suppliers
 - Average Response time (suggested by me) : avg (`accepted_time` - `assigned time`)
 - Average Deliver time (suggested by me) : avg (`delivered time` - `start time`)
 
-####Average Response time:
+## Average Response time:
 - `assigned time` : When customer assign an order to a supplier during *'order/execute/customer/status/processing'* `event`
 - `accepted time` : When supplier review and accept an order    during *'order/execute/customer/status/payment'* `event`
 The `Supplier Average Response time` indicate how much a supplier is timely and punctual or how much he respects customer time !
@@ -203,7 +204,7 @@ This metric calculated in `hour` and when you lok at the result it's interesting
 ```
 The function `cal_sup_resp_time` used for calculate this metric.
 
-####Average Deliver time:
+## Average Deliver time:
 - `start time` : When supplier start manufacturing  during *'order/execute/status/customer/printing'* `event`
 - `deliver time` : When supplier finished order and order delivered to customer  during *'order/execute/status/customer/successful'* `event`
 
