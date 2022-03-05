@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 from sqlalchemy import create_engine
-
+db_conn='postgresql+psycopg2://postgres:pass@127.0.0.1'
 
 def load_data():
 
@@ -19,7 +19,7 @@ def load_data():
 
     # Create an engine instance
 
-    alchemyEngine = create_engine('postgresql+psycopg2://postgres:pass@127.0.0.1', pool_recycle=3600)
+    alchemyEngine = create_engine(db_conn, pool_recycle=3600)
 
     # Connect to PostgreSQL server
 
@@ -41,7 +41,7 @@ def wrtie_df_todb(df_table):
     print('cleaned today rows : ', deleted_rows)
     # Create an engine instance
 
-    alchemyEngine = create_engine('postgresql+psycopg2://postgres:pass@127.0.0.1', pool_recycle=3600)
+    alchemyEngine = create_engine(db_conn, pool_recycle=3600)
 
     # Connect to PostgreSQL server
 
@@ -52,20 +52,16 @@ def wrtie_df_todb(df_table):
     dbConnection.close()
     print('---write to database done √---')
 def delete_today_records():
-    """ delete part by part id """
-    alchemyEngine = create_engine('postgresql+psycopg2://postgres:pass@127.0.0.1', pool_recycle=3600)
 
     conn = None
     rows_deleted = 0
     try:
-        # read database configuration
-
         # connect to the PostgreSQL database
         conn = psycopg2.connect(database="postgres", user='postgres', password='pass', host='127.0.0.1', port= '5432')
         conn.autocommit = True
         # create a new cursor
         cur = conn.cursor()
-        # execute the UPDATE  statement
+        # remove today records, to prevent dublicate records
         str= "delete from public.supplier_score_metrics s where s.calculated_at like '%s'" % time.strftime("%Y-%m-%d")
         cur.execute(str)
         # get the number of updated rows
